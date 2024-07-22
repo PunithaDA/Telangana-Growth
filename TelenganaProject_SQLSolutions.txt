@@ -1,0 +1,109 @@
+
+-- Joining tables - date,districts with fact stamp
+
+select dim.quarter,dim.Mmm,dim.fiscal_year,dis.district,fact.* from fact_stamps as fact 
+left join dim_date as dim on fact.month = dim.month 
+left join dim_districts as dis on fact.dist_code = dis.dist_code ;
+
+
+
+-- 1.Revenue generated from document registration vary across districts 
+SELECT district,documents_registered_rev from stampjoincsv order by documents_registered_rev DESC ;
+
+SELECT district,MAX(documents_registered_rev) as maxRev from stampjoincsv group by district order by maxRev DESC;
+
+-- 1.1 Top 5 district with highest document registration
+
+SELECT district,MAX(documents_registered_rev) as maxRev from stampjoincsv 
+where fiscal_year between 2019 and 2022
+group by district order by maxRev DESC limit 5;
+
+-- 2.Compare docu revenue and estamp revenue
+SELECT district,SUM(documents_registered_rev) as docRev,SUM(estamps_challans_rev) as estamprev from stampjoincsv
+group by district 
+order by docRev,estamprev ;
+
+-- 2.1 Top 5 districts with more revenue
+SELECT district,SUM(estamps_challans_rev) as estamprev,SUM(documents_registered_rev) as docrev from stampjoincsv
+where estamps_challans_rev > documents_registered_rev
+group by district
+order by estamprev,docrev DESC limit 5;
+
+
+-- 3. estamp count and docu count pattern
+
+select fiscal_year,SUM(documents_registered_cnt) as Dcount,SUM(estamps_challans_cnt) as Ecount 
+from stampjoincsv
+group by fiscal_year; 
+
+
+-- Joining date,districts table with transport table
+
+
+select dim.Mmm,dim.quarter,dim.fiscal_year,dis.district,tran.* from fact_transport as tran 
+left join dim_date as dim on tran.month = dim.month left join dim_districts as dis on tran.dist_code = dis.dist_code ;
+
+
+-- 5. correlation between vehicle sales and specific months or seasons in different districts
+
+select district,Mmm,SUM(fuel_type_diesel) as DIESEL,SUM(fuel_type_petrol) as PETROL,
+SUM(fuel_type_electric) as ELECTRIC,SUM(fuel_type_others) as OTHERs
+From tranjoincsv
+group by district,Mmm
+order by Mmm DESC;
+
+-- 6. distribution of vehicles vary by vehicle class
+
+select district,sum(vehicleClass_MotorCycle) as MOTOR, SUM(vehicleClass_MotorCar) as CAR, 
+SUM(vehicleClass_AutoRickshaw) as AUTO,SUM(vehicleClass_Agriculture) as AGRI,
+SUM(vehicleClass_others) as OTHER
+ from tranjoincsv
+ where fiscal_year = 2022
+group by district
+order by MOTOR,CAR,AUTO,AGRI,OTHER;
+
+-- 7.top 3 and bottom 3 districts  by sales
+select district,fiscal_year,  MAX(fuel_type_petrol),MIN(fuel_type_petrol),MAX(fuel_type_diesel),MIN(fuel_type_diesel),
+MAX(fuel_type_electric),MIN(fuel_type_electric) from tranjoincsv
+group by district,fiscal_year
+having fiscal_year = 2022 and 2021
+order by district;
+;
+
+
+-- Joining date,districts table with ipass table
+
+select dim.Mmm,dim.quarter,dim.fiscal_year,dis.district,ipass.* from fact_ts_ipass as ipass 
+left join dim_date as dim on ipass.month = dim.month 
+left join dim_districts as dis on ipass.dist_code = dis.dist_code ;
+
+-- 8 Top 5 sectors in 2022
+SELECT sector,SUM(investment) FROM ipjoincsv
+where fiscal_year = 2022
+group by sector
+order by SUM(investment) DESC 
+LIMIT 5;
+-- 8.Top 5 sector with more investment
+
+SELECT sector,MAX(investment) from ipjoincsv
+where fiscal_year = 2022
+group by sector
+order by MAX(investment) DESC
+LIMIT 5;
+
+-- 9 TOP 3 District 
+SELECT district,MAX(investment) from ipjoincsv
+where fiscal_year between 2019 and 2022
+group by district
+order by MAX(investment) DESC
+LIMIT 3;
+
+-- 11. Multiple district
+SELECT sector,district,MAX(investment) from ipjoincsv
+where fiscal_year between 2021 and 2022
+group by sector,district
+order by MAX(investment) DESC
+;
+
+
+
